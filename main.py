@@ -1,16 +1,15 @@
 import telebot
 import random
 import json
-import os
 import time
 from telebot import types
+import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-BOT_TOKEH = os.getenv('BOT_TOKEH')
-
-bot = telebot.TeleBot(BOT_TOKEH)
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+bot = telebot.TeleBot(BOT_TOKEN)
 
 FILE_NAME = "data.json"
 
