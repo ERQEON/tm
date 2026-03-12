@@ -66,7 +66,10 @@ def stream(message):
 
         if time_passed < 1800:
             minutes_left = int((1800 - time_passed) // 60)
-            bot.send_message(message.chat.id, f"{user_name}, повтори попытку через: {minutes_left}м.")
+            markup = types.InlineKeyboardMarkup()
+            btn = types.InlineKeyboardButton("Добавить в группу", url="https://t.me/twitchmetrbot?startgroup")
+            markup.add(btn)
+            bot.send_message(message.chat.id, f"{user_name}, повтори попытку через: {minutes_left}м.", reply_markup=markup)
             cur.close()
             conn.close()
             return
