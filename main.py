@@ -132,7 +132,7 @@ def stats_message(message):
                 switch_inline_query=f"{response}"
             )
         
-        bot.send_message(chat_id, response)
+        bot.send_message(chat_id, response, reply_markup=share_markup)
     else: 
         markup = types.InlineKeyboardMarkup()
         btn = types.InlineKeyboardButton("Добавить в группу", url="https://t.me/twitchmetrbot?startgroup")
