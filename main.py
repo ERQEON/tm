@@ -24,6 +24,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS streams (
             chat_id TEXT,
             user_id TEXT,
+            user_name TEXT,
             followers INTEGER DEFAULT 0,
             last_stream DOUBLE PRECISION DEFAULT 0,
             PRIMARY KEY (chat_id, user_id)
@@ -48,9 +49,9 @@ def stream(message):
     if message.chat.type in ['group', 'supergroup']:
         chat_id = str(message.chat.id)
         user_id = str(message.from_user.id)
-        user_name = message.from_user.first_name
         current_time = time.time()
         num = random.randint(1, 50)
+        user_name = message.from_user.first_name
 
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -78,11 +79,14 @@ def stream(message):
         if new_total < 0: new_total = 0
 
         cur.execute('''
-            INSERT INTO streams (chat_id, user_id, followers, last_stream)
+            INSERT INTO streams (chat_id, user_id, user_name, followers, last_stream)
             VALUES (%s, %s, %s, %s)
             ON CONFLICT (chat_id, user_id) 
-            DO UPDATE SET followers = EXCLUDED.followers, last_stream = EXCLUDED.last_stream
-        ''', (chat_id, user_id, new_total, current_time))
+            DO UPDATE SET 
+                user_name = EXCLUDED.user_name,
+                followers = EXCLUDED.followers,
+                last_stream = EXCLUDED.last_stream
+        ''', (chat_id, user_id, user_name, new_total, current_time))
 
         conn.commit()
         cur.close()
@@ -123,7 +127,7 @@ def stats_message(message):
         
         response = "Статистика чата:\n\n"
         for index, user in enumerate(users, start=1):
-            response += f"{index}. {user['user_id']}: {user['followers']} фолловеров\n"
+            response += f"{index}. {user['user_name']}: {user['followers']} фолловеров\n"
 
         bot.send_message(message.chat.id, response)
     else: 
