@@ -125,6 +125,12 @@ def stats_message(message):
                 name = f"{user['user_id']}"
 
             response += f"{index}. {name}: {user['followers']} фолловеров\n"
+
+            share_markup = types.InlineKeyboardMarkup()
+            share_button = types.InlineKeyboardButton(
+                text="Поделиться",
+                switch_inline_query=f"{response}"
+            )
         
         bot.send_message(chat_id, response)
     else: 
