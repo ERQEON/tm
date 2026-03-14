@@ -17,6 +17,14 @@ bot = telebot.TeleBot(BOT_TOKEN)
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
+def migrate_db():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("ALTER TABLE streams ADD COLUMN IF NOT EXISTS user_name TEXT DEFAULT 'Аноним';")
+    conn.commit()
+    cur.close()
+    conn.close()
+
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -34,6 +42,7 @@ def init_db():
     cur.close()
     conn.close()
 
+migrate_db()
 init_db()
 
 @bot.message_handler(commands=['start'])
