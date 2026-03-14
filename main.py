@@ -17,14 +17,6 @@ bot = telebot.TeleBot(BOT_TOKEN)
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
-def migrate_db():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("ALTER TABLE streams ADD COLUMN IF NOT EXISTS user_name TEXT DEFAULT 'Аноним';")
-    conn.commit()
-    cur.close()
-    conn.close()
-
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -32,7 +24,6 @@ def init_db():
         CREATE TABLE IF NOT EXISTS streams (
             chat_id TEXT,
             user_id TEXT,
-            user_name TEXT,
             followers INTEGER DEFAULT 0,
             last_stream DOUBLE PRECISION DEFAULT 0,
             PRIMARY KEY (chat_id, user_id)
@@ -42,7 +33,6 @@ def init_db():
     cur.close()
     conn.close()
 
-migrate_db()
 init_db()
 
 @bot.message_handler(commands=['start'])
@@ -58,9 +48,9 @@ def stream(message):
     if message.chat.type in ['group', 'supergroup']:
         chat_id = str(message.chat.id)
         user_id = str(message.from_user.id)
+        user_name = message.from_user.first_name
         current_time = time.time()
         num = random.randint(1, 50)
-        user_name = message.from_user.first_name
 
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -88,14 +78,13 @@ def stream(message):
         if new_total < 0: new_total = 0
 
         cur.execute('''
-            INSERT INTO streams (chat_id, user_id, user_name, followers, last_stream)
+            INSERT INTO streams (chat_id, user_id, followers, last_stream)
             VALUES (%s, %s, %s, %s)
             ON CONFLICT (chat_id, user_id) 
             DO UPDATE SET 
-                user_name = EXCLUDED.user_name,
                 followers = EXCLUDED.followers,
                 last_stream = EXCLUDED.last_stream
-        ''', (chat_id, user_id, user_name, new_total, current_time))
+        ''', (chat_id, user_id, new_total, current_time))
 
         conn.commit()
         cur.close()
@@ -113,32 +102,31 @@ def stream(message):
 @bot.message_handler(commands=['stats'])
 def stats_message(message):
     if message.chat.type in ['group', 'supergroup']:
-        chat_id = str(message.chat.id)
+        chat_id = message.chat.id
 
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        cur.execute("""
-            SELECT user_id, followers 
-            FROM streams 
-            WHERE chat_id = %s 
-            ORDER BY followers DESC 
-            LIMIT 10
-        """, (chat_id,))
-
+        cur.execute("SELECT user_id, followers FROM streams WHERE chat_id = %s ORDER BY followers DESC LIMIT 10", (str(chat_id),))
         users = cur.fetchall()
         cur.close()
         conn.close()
 
         if not users:
-            bot.send_message(message.chat.id, "В этом чате ещё никто не стримил.")
+            bot.send_message(chat_id, "Статистика пуста")
             return
         
         response = "Статистика чата:\n\n"
         for index, user in enumerate(users, start=1):
-            response += f"{index}. {user['user_name']}: {user['followers']} фолловеров\n"
+            try:
+                member = bot.get_chat_member(chat_id, int(user['user_id']))
+                name = member.user.first_name
+            except Exception:
+                name = f"{user['user_id']}"
 
-        bot.send_message(message.chat.id, response)
+            response += f"{index}. {name}: {user['followers']} фолловеров\n"
+        
+        bot.send_message(chat_id, response)
     else: 
         markup = types.InlineKeyboardMarkup()
         btn = types.InlineKeyboardButton("Добавить в группу", url="https://t.me/twitchmetrbot?startgroup")
