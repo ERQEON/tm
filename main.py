@@ -131,6 +131,7 @@ def stats_message(message):
                 text="Поделиться",
                 switch_inline_query=f"{response}"
             )
+            share_markup.add(share_button)
         
         bot.send_message(chat_id, response, reply_markup=share_markup)
     else: 
