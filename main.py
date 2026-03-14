@@ -92,6 +92,44 @@ def stream(message):
         bot.send_message(message.chat.id, f"{user_name}, ты запустил стрим.\n{status} фолловеров\n\nУ тебя всего {new_total} фолловеров!")
 
     else:
-        bot.send_message(message.chat.id, "TwitchMetr - работает только в группах.")
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton("Добавить в группу", url="https://t.me/twitchmetrbot?startgroup")
+        markup.add(btn)
+        bot.send_message(message.chat.id, "TwitchMetr - работает только в группах.", reply_markup=markup)
+
+@bot.message_handler(commands=['stats'])
+def stats_message(message):
+    if message.chat.type in ['group', 'supergroup']:
+        chat_id = str(message.chat.id)
+
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        cur.execute("""
+            SELECT user_id, followers 
+            FROM streams 
+            WHERE chat_id = %s 
+            ORDER BY followers DESC 
+            LIMIT 10
+        """, (chat_id,))
+
+        users = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        if not users:
+            bot.send_message(message.chat.id, "В этом чате ещё никто не стримил.")
+            return
+        
+        response = "<b>Статистика чата:</b>"
+        for index, user in enumerate(users, start=1):
+            response += f"{index}. {user['user_id']}: {user['followers']} фолловеров\n"
+
+        bot.send_message(message.chat.id, response)
+    else: 
+        markup = types.InlineKeyboardMarkup()
+        btn = types.InlineKeyboardButton("Добавить в группу", url="https://t.me/twitchmetrbot?startgroup")
+        markup.add(btn)
+        bot.send_message(message.chat.id, "TwitchMetr - работает только в группах.", reply_markup=markup)
 
 bot.polling(none_stop=True)
