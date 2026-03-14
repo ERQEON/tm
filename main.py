@@ -121,7 +121,7 @@ def stats_message(message):
             bot.send_message(message.chat.id, "В этом чате ещё никто не стримил.")
             return
         
-        response = "<b>Статистика чата:</b>"
+        response = "Статистика чата:\n\n"
         for index, user in enumerate(users, start=1):
             response += f"{index}. {user['user_id']}: {user['followers']} фолловеров\n"
 
